@@ -7,9 +7,9 @@ The `release.yml` workflow reads the section matching the release tag
 (`## [tag]`) and uses it as the release notes for both the GitHub Release
 and the Sparkle appcast, unless overridden with the `release_notes` input.
 
-## [3.0.0-beta.1] - 2026-09-29
+## [3.0.0-beta.1] - 2026-09-30
 
-**macOS 27 only · Build 110 · First beta**
+**macOS 27 only · Build 111 · First beta**
 
 > [!IMPORTANT]
 > **This is the first 3.0.0 beta.**
@@ -29,13 +29,15 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 > - New option to show Live Activities and the camera indicator while apps are hidden.
 > - Folders, opening items by letter, and rounded screen corners.
 > - Pick the icon Thaw shows for any item.
+> - Open hidden items in the menu bar, under their own icon.
 > - One menu for every item, and fewer settings.
 >
 > **What's fixed**
 > - Settings no longer crashes on notched MacBooks, or at 110% zoom.
 > - Passwords' menu bar key can move to Hidden.
 > - "Who arranges items" is now Item arrangement, and says what it does.
-> - Thaw no longer reorders the menu bar around its own icons.
+> - Thaw no longer reorders the menu bar around its own icons, or when it runs out of room.
+> - The camera and microphone indicators stay in view with the Live Activities option on.
 > - Fast User Switching, AirDrop, Focus and Now Playing stay reachable.
 > - macOS's » button works again on notched MacBooks.
 
@@ -69,6 +71,13 @@ For items macOS never draws on macOS 27.
 
 - **A new option in Settings > General** keeps Live Activities and the camera and microphone indicators on the menu bar while apps are hidden, and stops hidden items from flashing when Notification Center opens.
 - **It's in beta and off by default.** Thaw offers it once at launch and asks for access to one file.
+- **The camera and microphone indicator stays in Visible.** It could land among hidden items and stay out of sight.
+- **An app Control Center doesn't know stays on the bar** instead of switching the option back to the usual hiding, which hid the indicators again.
+
+### New: open hidden items in the menu bar
+
+- **Open hidden items in the menu bar**, in Settings > Thaw Bar, shows a hidden item in the menu bar and opens its menu under the icon, from the Thaw Bar, search or a shortcut. Off, the menu opens without the icon, as before.
+- **An app that ignores the click** still opens without its icon.
 
 ### Apple's items Thaw can't hide
 
@@ -91,6 +100,14 @@ Switches in Settings > Experiments swap these for Thaw icons you can move or hid
 
 - **Settings no longer crashes** on notched MacBooks or at 110% zoom. Reported by @ifangxiang and @NickBenthem in [#1194](https://github.com/thaw-app/Thaw/issues/1194).
 - **Thaw no longer reorders the menu bar around its own icons.**
+- **A full menu bar stays in order.** When macOS has no room to draw some Visible items, Thaw moves the extra ones to Hidden instead of rearranging the bar again and again.
+- **Apps with more than one icon stay where you put them.**
+- **Items keep their section** when you reorder Hidden or Always Hidden in Layout.
+- **The menu bar is no longer covered** while Thaw updates item pictures.
+- **Thaw waits while the screen is locked** instead of updating pictures and positions against the lock screen.
+- **Apple's items keep their pictures** on taller notched menu bars.
+- **The menu bar background follows reveals at once**, on the right display.
+- **The Thaw Bar stays put** when the Thaw icon is turned off.
 - **Hidden items open reliably**, and open in the Thaw Bar when the menu bar is full. Reported by @Kodiak-01 in [#1115](https://github.com/thaw-app/Thaw/issues/1115).
 - **macOS's » button works** on notched MacBooks. Reported by @joaofrgomes in [#1195](https://github.com/thaw-app/Thaw/issues/1195).
 - **Passwords' menu bar key can move to Hidden.** [#1205](https://github.com/thaw-app/Thaw/issues/1205)
