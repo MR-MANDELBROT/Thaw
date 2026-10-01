@@ -14,7 +14,7 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 > [!IMPORTANT]
 > **This is the first 3.0.0 beta.**
 >
-> Beta is the default update channel. Nightly gets every build as it lands. Switch in Settings > About.
+> Beta is the default update channel. Nightly gets every build as it lands. Switch it in About Thaw, from the ⋯ menu in Settings.
 
 > [!NOTE]
 > **Missing a fix?**
@@ -83,7 +83,7 @@ Switches in Settings > Experiments swap these for Thaw icons you can move or hid
 
 ### Settings
 
-- **Update channels.** Choose Beta or Nightly in Settings > About.
+- **Update channels.** Choose Beta or Nightly in About Thaw, from the ⋯ menu in Settings.
 - **An update's notes open in What's New** before you install.
 - **Item arrangement** says what Automatic and Manual do. Reported by @KyNorthstar in [#1212](https://github.com/thaw-app/Thaw/issues/1212).
 - **Dashed and dotted borders** in Appearance.
