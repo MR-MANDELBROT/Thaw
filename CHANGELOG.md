@@ -21,6 +21,11 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 >
 > If your issue isn't fixed in this build, comment on it. Thank you to everyone who sent logs, recordings and crash reports.
 
+> [!NOTE]
+> **A leaner Thaw**
+>
+> We're trimming, tidying and improving the interface over the next betas. If something feels cluttered, confusing or missing, tell us on GitHub or Discord. Help is appreciated.
+
 > [!TIP]
 > **The short version**
 >
