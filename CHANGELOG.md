@@ -119,6 +119,10 @@ Switches in Settings > Experiments swap these for Thaw icons you can move or hid
 - **Clicks near the clock in full-screen apps** no longer open Notification Center. Reported by @apaeffgen in [#1191](https://github.com/thaw-app/Thaw/issues/1191).
 - **Thaw is faster**: the accessibility helper starts, and swaps and reveals do less work.
 
+### Known issues
+
+- **"Broadcast Message … NSAccessibilityException" in every Terminal window.** An older app whose menu bar item uses AppKit's legacy status-item API throws when Thaw reads the item, and macOS broadcasts the error to all terminals. To find the app, run `log show --last 10m --style compact --predicate 'eventMessage CONTAINS "NSAccessibilityException"'` while it happens; the process name in each line is the app. Quitting or updating that app stops the messages. [#1214](https://github.com/thaw-app/Thaw/issues/1214)
+
 ### Still under investigation
 
 - **Thaw may not stay the frontmost app.** Tell us if it still happens. [#1167](https://github.com/thaw-app/Thaw/issues/1167)
