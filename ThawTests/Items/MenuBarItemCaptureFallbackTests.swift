@@ -1,0 +1,404 @@
+//
+//  MenuBarItemCaptureFallbackTests.swift
+//  Project: Thaw
+//
+//  Copyright (Thaw) © 2026 Toni Förster
+//  Licensed under the GNU GPLv3
+
+import CoreGraphics
+import MenuBarModel
+import os
+import Testing
+@testable import Thaw
+import ThawCapture
+
+@MainActor
+@Suite("Thumbnail capture fallback", .bug("https://github.com/thaw-app/Thaw/issues/1153"))
+struct MenuBarItemCaptureFallbackTests {
+    @Test("Locking during a capture discards pixels and failure verdicts", arguments: [CaptureFixture.Source.strip, .hosting, .barWindow], [false, true])
+    private func lockDuringCaptureDiscardsThePass(source: CaptureFixture.Source, returnsPixels: Bool) async throws {
+        let locked = OSAllocatedUnfairLock(initialState: false)
+        let item = makeItem()
+        let pixels = try makeCapture(opaque: source == .strip)
+        let reader = CaptureFixture(
+            hosting: source == .hosting && returnsPixels ? pixels : nil,
+            barWindow: source == .barWindow && returnsPixels ? pixels : nil,
+            strip: source == .strip && returnsPixels ? pixels : nil,
+            onCapture: { if $0 == source { locked.withLock { $0 = true } } }
+        )
+        let cache = MenuBarItemImageCache(screenIsLocked: { locked.withLock { $0 } })
+        let result = await cache.axBoundsCapture(
+            [(item, item.bounds)], scale: 2, displayID: 42,
+            validateFreshBounds: false, concealedIdentifiers: [], using: reader
+        )
+        #expect(result.captured.isEmpty)
+        #expect(result.invalidatedTags.isEmpty)
+        #expect(result.unconditionallyInvalidatedTags.isEmpty)
+        #expect(result.unreadable.isEmpty)
+        #expect(cache.wouldAttemptCapture(of: item))
+        #expect(await reader.captures.last == source, "Do not start fallbacks after the lock")
+    }
+
+    @Test("An already locked session starts no screenshot reads")
+    func lockedSessionDoesNotStartCapture() async {
+        let item = makeItem()
+        let reader = CaptureFixture(hosting: nil, strip: nil)
+        let cache = MenuBarItemImageCache(screenIsLocked: { true })
+        let result = await cache.axBoundsCapture(
+            [(item, item.bounds)], scale: 2, displayID: 42,
+            validateFreshBounds: false, concealedIdentifiers: [], using: reader
+        )
+        #expect(await reader.captures.isEmpty)
+        #expect(result.unreadable.isEmpty)
+        #expect(result.invalidatedTags.isEmpty)
+    }
+
+    @Test("A valid display-strip glyph avoids window capture", arguments: [false, true])
+    func validStripAvoidsWindows(validateFreshBounds: Bool) async throws {
+        let item = makeItem()
+        let reader = try CaptureFixture(
+            hosting: makeCapture(opaque: true, glyph: false),
+            barWindow: makeCapture(opaque: true, glyph: false),
+            strip: makeCapture(opaque: true)
+        )
+        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+
+        let result = await cache.axBoundsCapture(
+            [(item, item.bounds)],
+            scale: 2,
+            displayID: 42,
+            validateFreshBounds: validateFreshBounds,
+            concealedIdentifiers: [],
+            using: reader
+        )
+
+        let glyph = try #require(result.captured[item.tag])
+        #expect(!glyph.cgImage.isTransparent())
+        #expect(!glyph.cgImage.hasOpaquePerimeter())
+        #expect(await reader.captures == [.strip])
+        #expect(await reader.sourcesAtValidation == [.strip])
+        #expect(await reader.validatedTags == [item.tag])
+    }
+
+    @Test("A missing strip falls back to a valid hosting glyph")
+    func missingStripUsesHosting() async throws {
+        let item = makeItem()
+        let reader = try CaptureFixture(hosting: makeCapture(opaque: false), strip: nil)
+        let result = await capture(item, using: reader)
+
+        #expect(result.captured[item.tag] != nil)
+        #expect(await reader.captures == [.strip, .hosting])
+        #expect(await reader.validatedTags.isEmpty)
+    }
+
+    @Test("An owner-window glyph recovers failed strip and hosting captures", arguments: [false, true])
+    func failedStripAndHostingUseOwnerWindow(missingHosting: Bool) async throws {
+        let item = makeItem()
+        let reader = try CaptureFixture(
+            hosting: missingHosting ? nil : makeCapture(opaque: true, glyph: false),
+            barWindow: makeCapture(opaque: true),
+            strip: nil
+        )
+        let result = await capture(item, using: reader)
+
+        let glyph = try #require(result.captured[item.tag])
+        #expect(!glyph.cgImage.hasOpaquePerimeter())
+        #expect(await reader.captures == [.strip, .hosting, .barWindow])
+    }
+
+    @Test("A strip cannot use missing, moved or ambiguous owner geometry", arguments: [
+        CaptureFixture.Geometry.unavailable, .moved, .ambiguous,
+    ])
+    private func unsafeStripGeometryIsRejected(geometry: CaptureFixture.Geometry) async throws {
+        let item = makeItem()
+        let reader = try CaptureFixture(
+            hosting: makeCapture(opaque: false),
+            barWindow: makeCapture(opaque: false),
+            strip: makeCapture(opaque: true),
+            geometry: geometry,
+            items: [item]
+        )
+        let result = await capture(item, using: reader, validateFreshBounds: true)
+
+        #expect(result.captured.isEmpty)
+        #expect(await reader.captures == [.strip])
+        #expect(await reader.validatedTags == [item.tag])
+    }
+
+    @Test("Failure of every source terminates without blacklisting the item")
+    func allSourcesFail() async {
+        let item = makeItem()
+        let reader = CaptureFixture(hosting: nil, strip: nil)
+        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let result = await cache.axBoundsCapture(
+            [(item, item.bounds)],
+            scale: 2,
+            displayID: 42,
+            validateFreshBounds: false,
+            concealedIdentifiers: [],
+            using: reader
+        )
+
+        #expect(result.captured.isEmpty)
+        #expect(result.unreadable.contains { $0.tag == item.tag })
+        #expect(cache.wouldAttemptCapture(of: item))
+        #expect(await reader.captures == [.strip, .hosting, .barWindow])
+        #expect(await reader.validatedTags.isEmpty)
+    }
+
+    @Test("A mixed batch keeps the strip glyph and recovers only the unresolved item")
+    func mixedBatchKeepsStripGlyph() async throws {
+        let hosted = makeItem()
+        let fallback = makeItem(title: "Second", x: 1200, windowID: 102)
+        let reader = try CaptureFixture(
+            hosting: makeCapture(opaque: false),
+            strip: makeCapture(opaque: true, glyphX: 1208)
+        )
+        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let result = await cache.axBoundsCapture(
+            [(hosted, hosted.bounds), (fallback, fallback.bounds)],
+            scale: 2,
+            displayID: 42,
+            validateFreshBounds: false,
+            concealedIdentifiers: [],
+            using: reader
+        )
+
+        #expect(Set(result.captured.keys) == [hosted.tag, fallback.tag])
+        #expect(await reader.captures == [.strip, .hosting])
+        #expect(await reader.validatedTags == [hosted.tag, fallback.tag])
+    }
+
+    @Test("Concealed items cannot acquire pixels from any source")
+    func concealedItemCannotSupplyGlyph() async throws {
+        let item = makeItem()
+        let reader = try CaptureFixture(
+            hosting: makeCapture(opaque: false),
+            barWindow: makeCapture(opaque: false),
+            strip: makeCapture(opaque: true)
+        )
+        let result = await capture(item, using: reader, concealedIdentifiers: [item.uniqueIdentifier])
+
+        #expect(result.captured.isEmpty)
+        #expect(result.unconditionallyInvalidatedTags.isEmpty)
+    }
+
+    @Test("Overflow appearing during strip capture remains rejected by window fallbacks")
+    func stripOverflowIsRejected() async throws {
+        let item = makeItem()
+        let reader = try CaptureFixture(
+            hosting: makeCapture(opaque: false),
+            barWindow: makeCapture(opaque: false),
+            strip: makeCapture(opaque: true),
+            stripOverflowBounds: [item.bounds]
+        )
+        let result = await capture(item, using: reader)
+
+        #expect(result.captured.isEmpty)
+        #expect(result.invalidatedTags.contains(item.tag))
+    }
+
+    @Test("A strip with an inconsistent pixel scale cannot supply a glyph")
+    func malformedStripIsRejected() async throws {
+        let item = makeItem()
+        let image = try makeCapture(opaque: true)
+        let malformed = ScreenCapture.MenuBarHostingCapture(image: image.image, windowFrame: image.windowFrame, scale: 3)
+        let reader = CaptureFixture(hosting: nil, strip: malformed)
+        let result = await capture(item, using: reader)
+
+        #expect(result.captured.isEmpty)
+        #expect(await reader.validatedTags.isEmpty)
+    }
+
+    @Test("Unusable strip pixels fall back to a clean hosting glyph")
+    func blankStripUsesHosting() async throws {
+        let item = makeItem()
+        let reader = try CaptureFixture(
+            hosting: makeCapture(opaque: false),
+            strip: makeCapture(opaque: true, glyph: false)
+        )
+        let result = await capture(item, using: reader)
+
+        let glyph = try #require(result.captured[item.tag])
+        #expect(!glyph.cgImage.isTransparent())
+        #expect(!glyph.cgImage.hasOpaquePerimeter())
+        #expect(await reader.captures == [.strip, .hosting])
+    }
+
+    @Test("Busy wallpaper is rejected; only a clean window fallback can supply the glyph", arguments: [false, true])
+    func busyWallpaperUsesWindowFallback(hasWindow: Bool) async throws {
+        let item = makeItem()
+        let reader = try CaptureFixture(
+            hosting: hasWindow ? makeCapture(opaque: false) : nil,
+            strip: makeCapture(opaque: true, busyBackground: true)
+        )
+        let result = await capture(item, using: reader)
+
+        #expect((result.captured[item.tag] != nil) == hasWindow)
+        #expect(await reader.captures == (hasWindow ? [.strip, .hosting] : [.strip, .hosting, .barWindow]))
+        if let glyph = result.captured[item.tag] {
+            #expect(!glyph.cgImage.hasOpaquePerimeter())
+        }
+    }
+
+    private func capture(
+        _ item: MenuBarItem,
+        using reader: CaptureFixture,
+        validateFreshBounds: Bool = false,
+        concealedIdentifiers: Set<String> = []
+    ) async -> MenuBarItemImageCache.CapturePass {
+        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        return await cache.axBoundsCapture(
+            [(item, item.bounds)],
+            scale: 2,
+            displayID: 42,
+            validateFreshBounds: validateFreshBounds,
+            concealedIdentifiers: concealedIdentifiers,
+            using: reader
+        )
+    }
+
+    private func makeItem(title: String = "Status", x: CGFloat = 1000, windowID: CGWindowID = 101) -> MenuBarItem {
+        MenuBarItem(
+            tag: MenuBarItemTag(namespace: .string("com.example.status"), title: title, instanceIndex: 0),
+            windowID: windowID,
+            ownerPID: 999_991,
+            sourcePID: 999_991,
+            bounds: CGRect(x: x, y: 4.5, width: 24, height: 24),
+            title: title,
+            isOnScreen: true
+        )
+    }
+
+    private func makeCapture(
+        opaque: Bool,
+        glyph: Bool = true,
+        glyphX: CGFloat = 1008,
+        busyBackground: Bool = false
+    ) throws -> ScreenCapture.MenuBarHostingCapture {
+        let frame = CGRect(x: 0, y: 0, width: 1470, height: 33)
+        let context = try #require(CGContext(
+            data: nil,
+            width: 2940,
+            height: 66,
+            bitsPerComponent: 8,
+            bytesPerRow: 2940 * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.translateBy(x: 0, y: 66)
+        context.scaleBy(x: 2, y: -2)
+        if opaque {
+            context.setFillColor(CGColor(gray: 0.8, alpha: 1))
+            context.fill(frame)
+        }
+        if busyBackground {
+            var seed: UInt32 = 0x9E37_79B9
+            func nextComponent() -> CGFloat {
+                seed = seed &* 1_664_525 &+ 1_013_904_223
+                return CGFloat((seed >> 16) & 0xFF) / 255
+            }
+            for y in 0 ..< 24 {
+                for x in 0 ..< 24 {
+                    context.setFillColor(CGColor(
+                        red: nextComponent(), green: nextComponent(), blue: nextComponent(), alpha: 1
+                    ))
+                    context.fill(CGRect(x: 1000 + CGFloat(x), y: 4.5 + CGFloat(y), width: 1, height: 1))
+                }
+            }
+        }
+        if glyph {
+            context.setFillColor(CGColor(gray: 0, alpha: 1))
+            context.fill(CGRect(x: glyphX, y: 12, width: 8, height: 10))
+        }
+        return try ScreenCapture.MenuBarHostingCapture(image: #require(context.makeImage()), windowFrame: frame, scale: 2)
+    }
+}
+
+private actor CaptureFixture: MenuBarCaptureReading {
+    enum Source: Equatable, Sendable {
+        case hosting, barWindow, strip
+    }
+
+    enum Geometry: Sendable {
+        case stable, unavailable, moved, ambiguous
+    }
+
+    let hosting: ScreenCapture.MenuBarHostingCapture?
+    let barWindow: ScreenCapture.MenuBarHostingCapture?
+    let strip: ScreenCapture.MenuBarHostingCapture?
+    let geometry: Geometry
+    let items: [MenuBarItem]
+    let stripOverflowBounds: [CGRect]
+    let onCapture: @Sendable (Source) -> Void
+    private(set) var captures: [Source] = []
+    private(set) var sourcesAtValidation: [Source] = []
+    private(set) var validatedTags: [MenuBarItemTag] = []
+
+    init(
+        hosting: ScreenCapture.MenuBarHostingCapture?,
+        barWindow: ScreenCapture.MenuBarHostingCapture? = nil,
+        strip: ScreenCapture.MenuBarHostingCapture?,
+        geometry: Geometry = .stable,
+        items: [MenuBarItem] = [],
+        stripOverflowBounds: [CGRect] = [],
+        onCapture: @escaping @Sendable (Source) -> Void = { _ in }
+    ) {
+        self.hosting = hosting
+        self.barWindow = barWindow
+        self.strip = strip
+        self.geometry = geometry
+        self.items = items
+        self.stripOverflowBounds = stripOverflowBounds
+        self.onCapture = onCapture
+    }
+
+    func captureBand(displayID _: CGDirectDisplayID) async -> (frame: CGRect, menuMaxX: CGFloat?) {
+        (CGRect(x: 0, y: 0, width: 1470, height: 956), 300)
+    }
+
+    func overflowBounds(displayID _: CGDirectDisplayID) async -> [CGRect] {
+        captures.contains(.strip) ? stripOverflowBounds : []
+    }
+
+    func hostingCapture(displayID _: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture? {
+        captures.append(.hosting)
+        onCapture(.hosting)
+        return hosting
+    }
+
+    func barWindowCapture(ownerPID _: pid_t, displayID _: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture? {
+        captures.append(.barWindow)
+        onCapture(.barWindow)
+        return barWindow
+    }
+
+    func displayStripCapture(displayID _: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture? {
+        captures.append(.strip)
+        onCapture(.strip)
+        return strip
+    }
+
+    func menuBarItems(displayID _: CGDirectDisplayID) async -> [MenuBarItem] {
+        items
+    }
+
+    func liveBounds(
+        for candidates: [(item: MenuBarItem, bounds: CGRect)]
+    ) async -> (bounds: [String: CGRect], ambiguous: Set<String>) {
+        validatedTags = candidates.map(\.item.tag)
+        sourcesAtValidation = captures
+        switch geometry {
+        case .stable:
+            return (Dictionary(uniqueKeysWithValues: candidates.map { ($0.item.uniqueIdentifier, $0.bounds) }), [])
+        case .unavailable:
+            return ([:], [])
+        case .moved:
+            return (Dictionary(uniqueKeysWithValues: candidates.map {
+                ($0.item.uniqueIdentifier, $0.bounds.offsetBy(dx: 24, dy: 0))
+            }), [])
+        case .ambiguous:
+            return ([:], Set(candidates.map(\.item.uniqueIdentifier)))
+        }
+    }
+}

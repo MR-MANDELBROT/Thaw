@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The one entitlement Thaw itself asks for. Thaw is unsandboxed by
+	     necessity (it drives other processes' menu bar items through the
+	     accessibility APIs), so there is deliberately no app-sandbox key
+	     here: ENABLE_APP_SANDBOX stays NO for this target.
+
+	     The group id carries the team prefix (A7CKWF99ML.) rather than the
+	     "group." form. On macOS that is the recommended spelling: a
+	     team-prefixed group container is created without the Sequoia-era
+	     user consent prompt that "group."-prefixed containers trigger, and
+	     a menu bar utility must never make the user approve a dialog just
+	     so a Control Center toggle can read a Bool.
+
+	     What flows through the group is one direction only: the app writes
+	     a small JSON state snapshot (see ControlStatePublisher), the
+	     ThawControls appex reads it. Commands still travel the other way as
+	     Darwin notifications; see ControlCommandObserver. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>A7CKWF99ML.com.stonerl.Thaw</string>
+	</array>
+</dict>
+</plist>

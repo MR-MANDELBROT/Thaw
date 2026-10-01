@@ -2,39 +2,68 @@
 //  GeneralSettingsRows.swift
 //  Project: Thaw
 //
-//  Copyright (Ice) © 2023–2025 Jordan Baird
 //  Copyright (Thaw) © 2026 Toni Förster
 //  Licensed under the GNU GPLv3
 
-import LaunchAtLogin
 import SwiftUI
 
-// General settings rows shared by ``GeneralSettingsPane`` and
-// ``SimpleModeSettingsPane``. Tuning rows (hover delay, rehide strategy,
-// always-hidden gestures) stay in ``GeneralSettingsPane``.
+// General settings shared by GeneralSettingsPane and SimpleModeSettingsPane,
+// defined once so the two panes' explanations cannot drift.
 
 // MARK: - LaunchAtLoginRow
 
 /// Whether the app starts with the user's session.
 struct LaunchAtLoginRow: View {
+    @Environment(AppState.self) private var appState
+
     var body: some View {
-        LaunchAtLogin.Toggle {
-            Text("Launch at Login")
+        let setting = appState.settings.launchAtLogin
+        Toggle("Launch at Login", isOn: Binding(
+            get: { setting.isEnabled },
+            set: { enabled in
+                Task { await setting.setEnabled(enabled) }
+            }
+        ))
+        .disabled(!setting.isLoaded || setting.isUpdating)
+        .task {
+            let activations = NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification)
+            await setting.refresh()
+            for await _ in activations {
+                await setting.refresh()
+            }
         }
     }
 }
 
-// MARK: - ShowIceIconRow
+// MARK: - ShowThawIconRow
 
 /// Whether the app's own menu bar icon is shown, and which icon it is.
-struct ShowIceIconRow: View {
+struct ShowThawIconRow: View {
+    @Environment(AppState.self) private var appState
     @Bindable var settings: GeneralSettings
 
+    /// Names only the gestures that currently do something: double-click needs
+    /// Always Hidden, and the swap option changes what a click does.
+    private var gestureSummary: LocalizedStringKey {
+        let advanced = appState.settings.advanced
+        let doubleClickOpensAlwaysHidden = advanced.isAlwaysHiddenSectionEnabled
+        switch (advanced.swapOnThawIconClick, doubleClickOpensAlwaysHidden) {
+        case (false, true):
+            return "Click to show hidden items, double-click for Always Hidden, and right-click for settings."
+        case (false, false):
+            return "Click to show hidden items and right-click for settings."
+        case (true, true):
+            return "Click to swap shown and hidden items, double-click for Always Hidden, and right-click for settings."
+        case (true, false):
+            return "Click to swap shown and hidden items and right-click for settings."
+        }
+    }
+
     var body: some View {
-        Toggle("Show \(Constants.displayName) icon", isOn: $settings.showIceIcon)
-            .annotation("Show the \(Constants.displayName) icon in the menu bar. Click to show hidden items, double-click for always-hidden, and right-click for settings.")
-        if settings.showIceIcon {
-            IceIconPicker(settings: settings)
+        Toggle("Show \(Constants.displayName) icon", isOn: $settings.showThawIcon)
+            .annotation(gestureSummary)
+        if settings.showThawIcon {
+            ThawIconPicker(settings: settings)
         }
     }
 }

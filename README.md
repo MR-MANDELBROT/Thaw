@@ -266,4 +266,6 @@ Open to partnerships, integrations, and sponsorships. [Get in touch](https://git
 
 ## License
 
-Thaw is available under the [GPL-3.0 license](LICENSE).
+Thaw is available under the [GPL-3.0 license](LICENSE). Linking with
+PlatformRuntimeKit, the closed component that hides items, is allowed by an
+[additional permission](LICENSE-EXCEPTION) under section 7.
