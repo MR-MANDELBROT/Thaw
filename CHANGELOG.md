@@ -137,7 +137,7 @@ Switches in Settings > Experiments swap these for Thaw icons you can move or hid
 - lyly and influx on Discord, missing items and live wallpapers
 - Andrew, ꩜ツ iamnotacat ツ꩜, xX-Mordran-Xx, Kristian Kruse, katlaland and Fofer on Discord, testing, logs and reports across many issues
 
-## [2.1.0-beta.6] - 2026-09-29
+## [2.1.0-beta.6] - 2026-09-30
 
 **macOS 26 only · Build 62**
 
