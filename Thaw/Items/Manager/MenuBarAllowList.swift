@@ -7,6 +7,7 @@
 
 import Foundation
 import MenuBarModel
+import PlatformRuntimeKit
 
 /// Apps switched off under System Settings > Menu Bar > Allow in the Menu Bar.
 ///
@@ -19,35 +20,70 @@ import MenuBarModel
 final class MenuBarAllowList {
     static let shared = MenuBarAllowList()
 
+    /// Re-read at most this often when the file's date cannot be read.
+    private static let undatedRereadInterval: TimeInterval = 5
+
     private let access = PickedFileAccess.controlCenterAppList
     private var cachedModificationDate: Date?
+    private var lastReadDate: Date?
     private var cachedDisallowed: Set<String> = []
     private var loggedDisallowed: Set<String>?
+    private var loggedFailure = false
     private let diagLog = DiagLog(category: "MenuBarAllowList")
 
     /// Bundle identifiers macOS keeps off the menu bar, empty when the list
-    /// cannot be read. Re-reads the file only after it changes.
+    /// cannot be read. Re-reads the list only after it changes.
     func disallowedBundleIdentifiers() -> Set<String> {
-        guard let modified = access.modificationDate() else {
-            return []
+        let now = Date()
+        let modified = access.modificationDate()
+        if let modified, modified == cachedModificationDate {
+            return cachedDisallowed
         }
-        if modified == cachedModificationDate {
+        if modified == nil, let lastReadDate,
+           now.timeIntervalSince(lastReadDate) < Self.undatedRereadInterval
+        {
             return cachedDisallowed
         }
         cachedModificationDate = modified
-        guard let plist = access.readDictionary(),
-              let disallowed = Self.disallowedBundleIdentifiers(in: plist)
-        else {
+        lastReadDate = now
+        // cfprefsd serves the domain even where a direct read is refused.
+        let fromFile = access.readDictionary().flatMap(Self.disallowedBundleIdentifiers(in:))
+        let fromPreferences = fromFile == nil ? Self.readPreferences().flatMap(Self.disallowedBundleIdentifiers(in:)) : nil
+        guard let disallowed = fromFile ?? fromPreferences else {
             cachedDisallowed = []
-            diagLog.warning("Control Center's app list has no readable tracked applications; filtering nothing")
+            if !loggedFailure {
+                loggedFailure = true
+                diagLog.warning(
+                    "Control Center's app list is not readable; filtering nothing. \(access.accessDiagnostics())"
+                )
+            }
             return []
         }
+        loggedFailure = false
         cachedDisallowed = disallowed
         if loggedDisallowed != disallowed {
             loggedDisallowed = disallowed
-            diagLog.info("Apps not allowed in the menu bar by macOS: \(disallowed.sorted())")
+            diagLog.info(
+                "Apps not allowed in the menu bar by macOS (\(fromFile != nil ? "file" : "preferences")): \(disallowed.sorted())"
+            )
         }
         return disallowed
+    }
+
+    /// Control Center's domain through cfprefsd, keyed like the plist file.
+    private static func readPreferences() -> [String: Any]? {
+        let domain = CFPreferencesTrackedApplications.defaultDomain as CFString
+        guard let keys = CFPreferencesCopyKeyList(domain, kCFPreferencesCurrentUser, kCFPreferencesAnyHost) as? [String],
+              !keys.isEmpty
+        else {
+            return nil
+        }
+        return CFPreferencesCopyMultiple(
+            keys as CFArray,
+            domain,
+            kCFPreferencesCurrentUser,
+            kCFPreferencesAnyHost
+        ) as? [String: Any]
     }
 
     /// Reads the tracked applications as JSON data, a JSON string or a

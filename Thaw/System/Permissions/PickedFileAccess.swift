@@ -96,16 +96,49 @@ final class PickedFileAccess {
         return true
     }
 
+    /// The bookmark's own URL first: its scope may cover that spelling of
+    /// the path only.
+    private var readableURLs: [URL] {
+        [scopedURL, fileURL].compactMap { $0 }
+    }
+
     /// The file's modification date, or nil when it cannot be reached.
     func modificationDate() -> Date? {
         activateIfNeeded()
-        return (try? FileManager.default.attributesOfItem(atPath: fileURL.path))?[.modificationDate] as? Date
+        for url in readableURLs {
+            if let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date {
+                return date
+            }
+        }
+        return nil
     }
 
     /// The file's property list, or nil when it cannot be read.
     func readDictionary() -> [String: Any]? {
         activateIfNeeded()
-        return NSDictionary(contentsOf: fileURL) as? [String: Any]
+        for url in readableURLs {
+            if let dictionary = NSDictionary(contentsOf: url) as? [String: Any] {
+                return dictionary
+            }
+        }
+        return nil
+    }
+
+    /// What stands between Thaw and the file, for the diagnostic log.
+    func accessDiagnostics() -> String {
+        activateIfNeeded()
+        let hasBookmark = UserDefaults.standard.data(forKey: bookmarkKey) != nil
+        let probes = readableURLs.map { url in
+            let stat: String
+            do {
+                _ = try FileManager.default.attributesOfItem(atPath: url.path)
+                stat = "ok"
+            } catch {
+                stat = (error as NSError).localizedDescription
+            }
+            return "\(url.path) readable=\(FileManager.default.isReadableFile(atPath: url.path)) stat=\(stat)"
+        }
+        return "bookmark=\(hasBookmark) scoped=\(scopedURL != nil) " + probes.joined(separator: "; ")
     }
 
     private func store(_ url: URL) {
