@@ -118,7 +118,7 @@ extension MenuBarItemManager {
             return false
         }
 
-        let items: [MenuBarItem] = if let liveItems {
+        let unfilteredItems: [MenuBarItem] = if let liveItems {
             liveItems.filter { !$0.isSystemClone && !$0.isNativeOverflowControl }
         } else if !itemCache.managedItems.isEmpty {
             itemCache.managedItems.filter { !$0.isSystemClone && !$0.isNativeOverflowControl }
@@ -126,6 +126,7 @@ extension MenuBarItemManager {
             await (MenuBarItem.getMenuBarItems(option: .activeSpace))
                 .filter { !$0.isSystemClone && !$0.isNativeOverflowControl }
         }
+        let items = withoutAppsMacOSDisallows(unfilteredItems)
         guard let screen = NSScreen.screenWithActiveMenuBar ?? NSScreen.main else {
             return false
         }
@@ -302,7 +303,8 @@ extension MenuBarItemManager {
             effectiveAvailableWidth = max(1, effectiveAvailableWidth - occlusionDeficit.width)
         }
 
-        // Visible items parked at x == -1 indicate the bar had no room to draw them.
+        // Visible items parked at the leading edge (x == -1, or x == 7/8 for a
+        // square icon) indicate the bar had no room to draw them.
         // Only on a settled, concealed bar: a reveal fills the bar with hidden
         // items, or with whole apps under native hiding, and macOS parks Visible
         // items that fit again once it closes. Counting them hid them for good.
@@ -313,7 +315,7 @@ extension MenuBarItemManager {
         let parkedWidths = !isBarSettled ? [] : visibleLive
             .filter { item in
                 let key = MenuBarItemTag.canonicalPersistentIdentifier(item.uniqueIdentifier)
-                return item.bounds.minX == MenuBarItemGeometry.transientSentinelX
+                return MenuBarItemGeometry.isNoRoomPark(item.bounds)
                     && !overflowIdentifiers.contains(item.uniqueIdentifier)
                     && !concealedIdentifiers.contains(key)
             }

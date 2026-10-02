@@ -143,7 +143,7 @@ extension MenuBarItemManager {
         }
         let controller = appState.menuBarManager.sectionController
 
-        var liveItems = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+        var liveItems = await withoutAppsMacOSDisallows(MenuBarItem.getMenuBarItems(option: .activeSpace))
         guard !arrangementIsManual, !Task.isCancelled else { return false }
 
         // A pulse can re-blank hiding-unsupported apps, so pulse only when
@@ -244,7 +244,7 @@ extension MenuBarItemManager {
             } catch {
                 return false
             }
-            liveItems = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+            liveItems = await withoutAppsMacOSDisallows(MenuBarItem.getMenuBarItems(option: .activeSpace))
             guard !arrangementIsManual, !Task.isCancelled else { return false }
             liveParkedIDs = parkedSetAndBarMidY(in: liveItems).parkedIDs
         } else if !needsPulse {

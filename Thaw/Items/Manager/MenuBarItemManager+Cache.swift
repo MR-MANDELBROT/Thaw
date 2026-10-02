@@ -325,13 +325,23 @@ extension MenuBarItemManager {
     /// Apps macOS does not allow in the menu bar. Empty while native app hiding
     /// is on, because it switches hidden apps off in the same list and their
     /// items would then drop out of the very sections that hide them.
-    private func macOSDisallowedBundleIdentifiers() -> Set<String> {
+    func macOSDisallowedBundleIdentifiers() -> Set<String> {
         if Defaults.bool(forKey: .enableNativeAppHiding) ||
             appState?.menuBarManager.nativeAppHidingExperiment.isActive == true
         {
             return []
         }
         return MenuBarAllowList.shared.disallowedBundleIdentifiers()
+    }
+
+    /// items without those of apps macOS keeps off the menu bar, for passes
+    /// that read the bar directly instead of the cache.
+    func withoutAppsMacOSDisallows(_ items: [MenuBarItem]) -> [MenuBarItem] {
+        let disallowed = macOSDisallowedBundleIdentifiers()
+        guard !disallowed.isEmpty else {
+            return items
+        }
+        return items.filter { !MenuBarAllowList.isDisallowed($0, in: disallowed) }
     }
 
     /// Bucket without publishing so sanity retries reuse classification without reentering the cache pass.
