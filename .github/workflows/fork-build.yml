@@ -76,9 +76,13 @@ jobs:
       - name: Test
         run: |
           status=0
+          # Debug does not link in the 3.0.0-beta.1 sources (ThawConcurrency only
+          # reaches the app through ThawCapture), so test the Release graph.
           xcodebuild test \
             -project Thaw.xcodeproj \
             -scheme Thaw \
+            -configuration Release \
+            ENABLE_TESTABILITY=YES \
             -derivedDataPath Build \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="" \
