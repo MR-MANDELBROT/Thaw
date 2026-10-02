@@ -1,0 +1,94 @@
+name: Fork Build
+
+# Unsigned Release build of the macOS 27 codebase for this fork. The app is
+# signed locally with the fork owner's Developer ID after download.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/macos27]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'MR-MANDELBROT/Thaw'
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select latest installed Xcode (including betas)
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest
+
+      - name: Build
+        run: |
+          xcodebuild -version
+          status=0
+          xcodebuild build \
+            -project Thaw.xcodeproj \
+            -scheme Thaw \
+            -configuration Release \
+            -derivedDataPath Build \
+            -destination 'generic/platform=macOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            > build.log 2>&1 || status=$?
+          grep -E "error:|BUILD (SUCCEEDED|FAILED)" build.log || true
+          exit $status
+
+      - name: Package
+        run: ditto -c -k --keepParent Build/Build/Products/Release/Thaw.app Thaw-unsigned.zip
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Thaw-unsigned
+          path: Thaw-unsigned.zip
+          retention-days: 7
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
+
+  test:
+    if: github.repository == 'MR-MANDELBROT/Thaw'
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select latest installed Xcode (including betas)
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest
+
+      - name: Test
+        run: |
+          status=0
+          xcodebuild test \
+            -project Thaw.xcodeproj \
+            -scheme Thaw \
+            -derivedDataPath Build \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            > test.log 2>&1 || status=$?
+          grep -E "error:|Test Suite .* (passed|failed)|Executed [0-9]+ tests|TEST (SUCCEEDED|FAILED)|✘|failed \(" test.log | tail -80 || true
+          exit $status
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: test-log
+          path: test.log
+          retention-days: 7
