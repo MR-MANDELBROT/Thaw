@@ -49,6 +49,13 @@ nonisolated enum Constants {
         false
     }
 
+    /// Native app hiding stays out of reach in this fork: on macOS 27.0 it
+    /// rewrote Control Center's Allow in the Menu Bar list and left apps the
+    /// user had switched off switched on. Turning it off stays possible.
+    static var offersNativeAppHiding: Bool {
+        false
+    }
+
     // swiftlint:enable force_unwrapping
 
     /// The onboarding flow's own version, compared against

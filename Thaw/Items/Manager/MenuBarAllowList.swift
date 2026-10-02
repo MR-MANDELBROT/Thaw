@@ -92,10 +92,18 @@ final class MenuBarAllowList {
         ) as? [String: Any]
     }
 
-    /// Collects every entry with an isAllowed flag, wherever the list keeps
-    /// it: keyed by bundle identifier or carrying one, nested, or encoded as
-    /// JSON or property list data or text. Nil when no entry has the flag.
+    /// Collects every entry with an isAllowed flag under Control Center's
+    /// tracked applications. macOS 27 stores them as a keyed Codable
+    /// container: an array alternating keys like {bundle: {_0: id}} with
+    /// values {isAllowed, location: {bundle: {_0: id}}, ...}, as property list
+    /// data. Earlier layouts keyed JSON objects by bundle identifier. Nil when
+    /// no entry has the flag.
     nonisolated static func disallowedBundleIdentifiers(in plist: [String: Any]) -> Set<String>? {
+        // Only the tracked applications: the same domain keeps other
+        // isAllowed lists, such as which apps may show Live Activities.
+        let root: Any = plist.first(where: {
+            $0.key.caseInsensitiveCompare("TrackedApplications") == .orderedSame
+        })?.value ?? plist
         var sawEntry = false
         var disallowed = Set<String>()
         func visit(_ value: Any, key: String?, depth: Int) {
@@ -111,23 +119,55 @@ final class MenuBarAllowList {
                 if let key {
                     disallowed.insert(key)
                 }
-                for idKey in ["rawBundleId", "bundleIdentifier", "bundleID", "bundleId"] {
-                    if let bundleID = entry[idKey] as? String {
-                        disallowed.insert(bundleID)
-                    }
+                if let bundleID = bundleIdentifier(in: entry, depth: 0) {
+                    disallowed.insert(bundleID)
                 }
             } else if let dictionary = decoded as? [String: Any] {
                 for (childKey, child) in dictionary {
                     visit(child, key: childKey, depth: depth + 1)
                 }
             } else if let array = decoded as? [Any] {
+                // A keyed container pairs each key with the value after it.
+                var pendingKey: String?
                 for child in array {
-                    visit(child, key: nil, depth: depth + 1)
+                    if let childKey = bundleIdentifier(in: child, depth: 0),
+                       (child as? [String: Any])?["isAllowed"] == nil
+                    {
+                        pendingKey = childKey
+                        continue
+                    }
+                    visit(child, key: pendingKey, depth: depth + 1)
+                    pendingKey = nil
                 }
             }
         }
-        visit(plist, key: nil, depth: 0)
+        visit(root, key: nil, depth: 0)
         return sawEntry ? disallowed : nil
+    }
+
+    /// The bundle identifier an entry names: a raw identifier field, or a
+    /// bundle reference, plain or as the {_0: id} payload of an enum case.
+    private nonisolated static func bundleIdentifier(in value: Any, depth: Int) -> String? {
+        guard depth < 4, let dictionary = value as? [String: Any] else {
+            return nil
+        }
+        for idKey in ["rawBundleId", "bundleIdentifier", "bundleID", "bundleId"] {
+            if let bundleID = dictionary[idKey] as? String {
+                return bundleID
+            }
+        }
+        if let bundle = dictionary["bundle"] {
+            if let bundleID = bundle as? String {
+                return bundleID
+            }
+            if let bundleID = (bundle as? [String: Any])?["_0"] as? String {
+                return bundleID
+            }
+        }
+        if let location = dictionary["location"] {
+            return bundleIdentifier(in: location, depth: depth + 1)
+        }
+        return nil
     }
 
     /// Data or text holding JSON or a property list, decoded; anything else

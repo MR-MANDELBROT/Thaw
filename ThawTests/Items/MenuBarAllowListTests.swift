@@ -81,6 +81,33 @@ struct MenuBarAllowListTests {
         #expect(disallowed == ["org.hammerspoon.Hammerspoon"])
     }
 
+    @Test("macOS 27's keyed container pairs each bundle key with its value")
+    func keyedContainerFromMacOS27() throws {
+        func key(_ bundleID: String) -> [String: Any] {
+            ["bundle": ["_0": bundleID]]
+        }
+        func value(_ bundleID: String, allowed: Bool) -> [String: Any] {
+            ["isAllowed": allowed, "location": key(bundleID), "menuItemLocations": [key(bundleID)]]
+        }
+        let container: [Any] = [
+            key("com.scottharvey.screenzenapp.ios"), value("com.scottharvey.screenzenapp.ios", allowed: false),
+            ["adhocBinary": ["_0": "/usr/local/bin/tool"]], ["isAllowed": true],
+            key("notion.id"), value("notion.id", allowed: true),
+            key("ru.keepcoder.Telegram"), value("ru.keepcoder.Telegram", allowed: false),
+        ]
+        let data = try PropertyListSerialization.data(fromPropertyList: container, format: .binary, options: 0)
+        let liveActivities: [String: Any] = ["com.apple.sports": ["bundleID": "com.apple.sports", "isAllowed": false]]
+        let plist: [String: Any] = [
+            "trackedApplications": data,
+            "remoteLiveActivityApplications": try PropertyListSerialization.data(
+                fromPropertyList: liveActivities, format: .binary, options: 0
+            ),
+            "showWeather": true,
+        ]
+        let disallowed = try #require(MenuBarAllowList.disallowedBundleIdentifiers(in: plist))
+        #expect(disallowed == ["com.scottharvey.screenzenapp.ios", "ru.keepcoder.Telegram"])
+    }
+
     @Test("A list without tracked applications or with garbage filters nothing")
     func unreadableList() {
         #expect(MenuBarAllowList.disallowedBundleIdentifiers(in: ["ShowWeather": true]) == nil)

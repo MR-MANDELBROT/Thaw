@@ -11,7 +11,7 @@ import AppKit
 @MainActor
 enum NativeAppHidingOffer {
     static func presentIfNeeded(settings: AdvancedSettings, hints: FirstRunHintStore = .shared) {
-        guard hints.isPending(.nativeAppHidingOffer) else { return }
+        guard Constants.offersNativeAppHiding, hints.isPending(.nativeAppHidingOffer) else { return }
         hints.dismiss(.nativeAppHidingOffer)
         guard !settings.enableNativeAppHiding else { return }
 
