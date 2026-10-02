@@ -57,11 +57,28 @@ struct MenuBarAllowListTests {
         #expect(disallowed == ["com.anthropic.claudefordesktop"])
     }
 
-    @Test("Entries without an isAllowed flag are left alone")
-    func missingFlagIsAllowed() throws {
+    @Test("Entries without an isAllowed flag mean nothing is readable")
+    func missingFlagReadsNothing() {
         let plist: [String: Any] = ["TrackedApplications": #"{"com.example.app":{"rawBundleId":"com.example.app"}}"#]
+        #expect(MenuBarAllowList.disallowedBundleIdentifiers(in: plist) == nil)
+    }
+
+    @Test("Entries nested under another key are found")
+    func nestedEntries() throws {
+        let plist: [String: Any] = [
+            "MenuBarApps": ["apps": [["isAllowed": false, "bundleIdentifier": "io.fadel.MissionControlPlus"]]],
+            "ShowWeather": true,
+        ]
         let disallowed = try #require(MenuBarAllowList.disallowedBundleIdentifiers(in: plist))
-        #expect(disallowed.isEmpty)
+        #expect(disallowed == ["io.fadel.MissionControlPlus"])
+    }
+
+    @Test("Property list data is decoded like JSON")
+    func propertyListData() throws {
+        let entries: [String: Any] = ["org.hammerspoon.Hammerspoon": ["isAllowed": false]]
+        let data = try PropertyListSerialization.data(fromPropertyList: entries, format: .binary, options: 0)
+        let disallowed = try #require(MenuBarAllowList.disallowedBundleIdentifiers(in: ["TrackedApplications": data]))
+        #expect(disallowed == ["org.hammerspoon.Hammerspoon"])
     }
 
     @Test("A list without tracked applications or with garbage filters nothing")
