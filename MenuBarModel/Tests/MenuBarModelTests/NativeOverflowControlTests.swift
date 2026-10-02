@@ -35,6 +35,9 @@ struct NativeOverflowControlTests {
         "»",
         "Show Hidden Menu Bar Items",
         " Show Hidden Menu Bar Items ",
+        "Hide Menu Bar Items",
+        "Ausgeblendete Menüleistenobjekte einblenden",
+        "Menüleistenobjekte ausblenden",
     ])
     func recognizesTheControlUnderMenuBarAgent(title: String) {
         let tag = MenuBarItemTag(namespace: .menuBarAgent, title: title)

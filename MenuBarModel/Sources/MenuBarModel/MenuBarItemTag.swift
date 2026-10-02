@@ -301,8 +301,13 @@ public struct MenuBarItemTag: Hashable, CustomStringConvertible, Sendable, Codab
 
     /// Localized title backstop for stale keys, fixtures, or failed AX reads; add observed locales, but never rely on titles alone.
     /// AX normally excludes overflow by its AXOverflowButton element or matching frame.
+    /// MenuBarAgent swaps the label with the overflow state (MenuBarCore.loctable show/hideOverflowItemsAccessibilityLabel),
+    /// and the overflow observation finds the control by these titles when no AXOverflowButton is published, so add both.
     static let nativeOverflowControlKnownTitles: Set<String> = [
         "Show Hidden Menu Bar Items",
+        "Hide Menu Bar Items",
+        "Ausgeblendete Menüleistenobjekte einblenden",
+        "Menüleistenobjekte ausblenden",
     ]
 
     /// Whether this item's owner is in agentUngovernedOwners.
