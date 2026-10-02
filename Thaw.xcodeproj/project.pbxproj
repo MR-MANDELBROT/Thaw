@@ -30,6 +30,7 @@
 		A1A1A1A1A1A1A1A1A1A1A106 /* ThawAXClient in Frameworks */ = {isa = PBXBuildFile; productRef = A1A1A1A1A1A1A1A1A1A1A103 /* ThawAXClient */; };
 		A1A1A1A1A1A1A1A1A1A1A107 /* ThawAXHelper in Embed AX Helper */ = {isa = PBXBuildFile; productRef = A1A1A1A1A1A1A1A1A1A1A104 /* ThawAXHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E1E1E1E1E1E1E1E1E1E1E103 /* ThawExtraHelper in Embed Extra Helper */ = {isa = PBXBuildFile; productRef = E1E1E1E1E1E1E1E1E1E1E102 /* ThawExtraHelper */; };
+		C0C0C0C0C0C0C0C0C0C0C003 /* ThawConcurrency in Frameworks */ = {isa = PBXBuildFile; productRef = C0C0C0C0C0C0C0C0C0C0C002 /* ThawConcurrency */; };
 		B1B1B1B1B1B1B1B1B1B1B104 /* ThawLayout in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B102 /* ThawLayout */; };
 		B1B1B1B1B1B1B1B1B1B1B105 /* ThawLayout in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B103 /* ThawLayout */; };
 /* End PBXBuildFile section */
@@ -202,6 +203,7 @@
 				A1A1A1A1A1A1A1A1A1A1A105 /* ThawAXCore in Frameworks */,
 				A1A1A1A1A1A1A1A1A1A1A106 /* ThawAXClient in Frameworks */,
 				B1B1B1B1B1B1B1B1B1B1B104 /* ThawLayout in Frameworks */,
+				C0C0C0C0C0C0C0C0C0C0C003 /* ThawConcurrency in Frameworks */,
 			);
 		};
 		7188A6802E27F9ED008F131D /* Frameworks */ = {
@@ -296,6 +298,7 @@
 				A1A1A1A1A1A1A1A1A1A1A103 /* ThawAXClient */,
 				A1A1A1A1A1A1A1A1A1A1A104 /* ThawAXHelper */,
 				B1B1B1B1B1B1B1B1B1B1B102 /* ThawLayout */,
+				C0C0C0C0C0C0C0C0C0C0C002 /* ThawConcurrency */,
 				E1E1E1E1E1E1E1E1E1E1E102 /* ThawExtraHelper */,
 			);
 			productName = Thaw;
@@ -440,6 +443,7 @@
 				A9E1F0012F70000000000001 /* XCLocalSwiftPackageReference "ThawUI" */,
 				A1A1A1A1A1A1A1A1A1A1A101 /* XCLocalSwiftPackageReference "ThawAX" */,
 				B1B1B1B1B1B1B1B1B1B1B101 /* XCLocalSwiftPackageReference "ThawLayout" */,
+				C0C0C0C0C0C0C0C0C0C0C001 /* XCLocalSwiftPackageReference "ThawConcurrency" */,
 				E1E1E1E1E1E1E1E1E1E1E101 /* XCLocalSwiftPackageReference "ThawExtras" */,
 			);
 			preferredProjectObjectVersion = 100;
@@ -1084,6 +1088,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ThawLayout;
 		};
+		C0C0C0C0C0C0C0C0C0C0C001 /* XCLocalSwiftPackageReference "ThawConcurrency" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ThawConcurrency;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -1250,6 +1258,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B1B1B1B1B1B1B1B1B1B1B101 /* XCLocalSwiftPackageReference "ThawLayout" */;
 			productName = ThawLayout;
+		};
+		C0C0C0C0C0C0C0C0C0C0C002 /* ThawConcurrency */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0C0C0C0C0C0C0C0C0C0C001 /* XCLocalSwiftPackageReference "ThawConcurrency" */;
+			productName = ThawConcurrency;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
