@@ -96,6 +96,18 @@ final class PickedFileAccess {
         return true
     }
 
+    /// The file's modification date, or nil when it cannot be reached.
+    func modificationDate() -> Date? {
+        activateIfNeeded()
+        return (try? FileManager.default.attributesOfItem(atPath: fileURL.path))?[.modificationDate] as? Date
+    }
+
+    /// The file's property list, or nil when it cannot be read.
+    func readDictionary() -> [String: Any]? {
+        activateIfNeeded()
+        return NSDictionary(contentsOf: fileURL) as? [String: Any]
+    }
+
     private func store(_ url: URL) {
         let data = (try? url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil))
             ?? (try? url.bookmarkData(includingResourceValuesForKeys: nil, relativeTo: nil))

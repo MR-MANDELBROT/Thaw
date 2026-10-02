@@ -322,6 +322,18 @@ extension MenuBarItemManager {
         return nil
     }
 
+    /// Apps macOS does not allow in the menu bar. Empty while native app hiding
+    /// is on, because it switches hidden apps off in the same list and their
+    /// items would then drop out of the very sections that hide them.
+    private func macOSDisallowedBundleIdentifiers() -> Set<String> {
+        if Defaults.bool(forKey: .enableNativeAppHiding) ||
+            appState?.menuBarManager.nativeAppHidingExperiment.isActive == true
+        {
+            return []
+        }
+        return MenuBarAllowList.shared.disallowedBundleIdentifiers()
+    }
+
     /// Bucket without publishing so sanity retries reuse classification without reentering the cache pass.
     private func bucketedCacheContext(
         items: [MenuBarItem],
@@ -337,7 +349,16 @@ extension MenuBarItemManager {
         // First occurrence wins, the rightmost item in reversed Window Server order.
         var seenIdentifiers = Set<String>()
 
+        // Apps switched off in System Settings stay out of every section; macOS
+        // never draws them, so they could only ever show as an app icon.
+        let disallowedBundles = macOSDisallowedBundleIdentifiers()
+        var disallowedCount = 0
+
         for item in items where context.isValidForCaching(item) {
+            if MenuBarAllowList.isDisallowed(item, in: disallowedBundles) {
+                disallowedCount += 1
+                continue
+            }
             guard seenIdentifiers.insert(item.uniqueIdentifier).inserted else {
                 MenuBarItemManager.diagLog.debug("uncheckedCacheItems: skipping duplicate tag \(item.logString)")
                 continue
@@ -356,7 +377,7 @@ extension MenuBarItemManager {
             invalidCount += 1
         }
 
-        MenuBarItemManager.diagLog.debug("uncheckedCacheItems: \(validCount) valid, \(invalidCount) invalid (filtered)")
+        MenuBarItemManager.diagLog.debug("uncheckedCacheItems: \(validCount) valid, \(invalidCount) invalid (filtered), \(disallowedCount) not allowed by macOS")
 
         context.cache = MenuBarBackendProvider.current.rebucket(
             context.cache,
