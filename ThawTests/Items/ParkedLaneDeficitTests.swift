@@ -21,6 +21,7 @@ struct ParkedLaneDeficitTests {
             previous: nil,
             parkedWidths: [32, 38, 38, 41],
             modeledHeadroom: 600,
+            concealedWidth: 0,
             visibleUIDs: visible,
             overflowUIDs: []
         ))
@@ -35,6 +36,7 @@ struct ParkedLaneDeficitTests {
             previous: previous,
             parkedWidths: [],
             modeledHeadroom: 900,
+            concealedWidth: 149,
             visibleUIDs: ["walld", "mole"],
             overflowUIDs: ["spark", "antishort", "cider", "slidepad"]
         ))
@@ -47,6 +49,7 @@ struct ParkedLaneDeficitTests {
             previous: nil,
             parkedWidths: [2],
             modeledHeadroom: 0,
+            concealedWidth: 0,
             visibleUIDs: ["a"],
             overflowUIDs: []
         ))
@@ -60,7 +63,50 @@ struct ParkedLaneDeficitTests {
             previous: previous,
             parkedWidths: [],
             modeledHeadroom: 500,
+            concealedWidth: 0,
             visibleUIDs: ["a", "b"],
+            overflowUIDs: []
+        ) == nil)
+    }
+
+    // After launch nothing is concealed yet: the model already wants 120 pt
+    // concealed, and the parked items are that same missing room.
+    @Test("A modeled shortfall nothing conceals yet offsets the parked width")
+    func uncoveredShortfallIsNotWithheldTwice() throws {
+        let deficit = try #require(MenuBarItemManager.parkedLaneDeficit(
+            previous: nil,
+            parkedWidths: [32, 38, 38, 41],
+            modeledHeadroom: -120,
+            concealedWidth: 0,
+            visibleUIDs: visible,
+            overflowUIDs: []
+        ))
+        let expected: CGFloat = 149 + 4 * 8 - 120
+        #expect(deficit.width == expected)
+    }
+
+    @Test("A shortfall the concealed items cover leaves the parked width whole")
+    func coveredShortfallKeepsParkedWidth() throws {
+        let deficit = try #require(MenuBarItemManager.parkedLaneDeficit(
+            previous: nil,
+            parkedWidths: [32, 38],
+            modeledHeadroom: -60,
+            concealedWidth: 79,
+            visibleUIDs: visible,
+            overflowUIDs: ["cider", "slidepad"]
+        ))
+        let expected: CGFloat = 70 + 2 * 8
+        #expect(deficit.width == expected)
+    }
+
+    @Test("Parked items inside the modeled shortfall withhold nothing more")
+    func parkedWithinShortfallWithholdsNothing() {
+        #expect(MenuBarItemManager.parkedLaneDeficit(
+            previous: nil,
+            parkedWidths: [32],
+            modeledHeadroom: -200,
+            concealedWidth: 0,
+            visibleUIDs: ["a"],
             overflowUIDs: []
         ) == nil)
     }

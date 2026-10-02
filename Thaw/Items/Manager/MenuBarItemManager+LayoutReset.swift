@@ -318,10 +318,19 @@ extension MenuBarItemManager {
                     && !concealedIdentifiers.contains(key)
             }
             .map(\.bounds.width)
+        // Concealed items are not drawn, so they already cover that much of a
+        // modeled shortfall; the rest is room the parked items show as well.
+        let concealedLaneItemWidth = visibleLive
+            .filter { item in
+                let key = MenuBarItemTag.canonicalPersistentIdentifier(item.uniqueIdentifier)
+                return overflowIdentifiers.contains(item.uniqueIdentifier) || concealedIdentifiers.contains(key)
+            }
+            .reduce(CGFloat.zero) { $0 + (uidWidths[$1.uniqueIdentifier] ?? 0) }
         let parkedDeficit = Self.parkedLaneDeficit(
             previous: heldParkedLaneDeficit,
             parkedWidths: parkedWidths,
             modeledHeadroom: effectiveAvailableWidth - trailingLaneItemWidth,
+            concealedWidth: concealedLaneItemWidth,
             visibleUIDs: Set(visibleLive.map(\.uniqueIdentifier)),
             overflowUIDs: overflowIdentifiers
         )

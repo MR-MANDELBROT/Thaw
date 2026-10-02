@@ -444,12 +444,17 @@ final class MenuBarItemManager {
     /// from the left of Visible. A fixed per-item allowance was not enough,
     /// since the model's error can be larger than any number of items.
     ///
+    /// A modeled shortfall that concealedWidth does not cover yet, as after
+    /// launch or when an item arrives, is the same missing room the parked
+    /// items show. It offsets their width instead of being concealed twice.
+    ///
     /// The deficit holds while the same items compete for the bar and is
     /// dropped once an item arrives or leaves.
     static nonisolated func parkedLaneDeficit(
         previous: (width: CGFloat, visibleUIDs: Set<String>)?,
         parkedWidths: [CGFloat],
         modeledHeadroom: CGFloat,
+        concealedWidth: CGFloat,
         visibleUIDs: Set<String>,
         overflowUIDs: Set<String>
     ) -> (width: CGFloat, visibleUIDs: Set<String>)? {
@@ -459,7 +464,8 @@ final class MenuBarItemManager {
             return carried > 0 ? (carried, membership) : nil
         }
         let parked = parkedWidths.reduce(CGFloat.zero) { $0 + budgetWidth(forMeasuredWidth: $1) + 8 }
-        let width = max(carried, max(0, modeledHeadroom) + parked)
+        let uncoveredShortfall = min(0, modeledHeadroom + concealedWidth)
+        let width = max(carried, max(0, modeledHeadroom) + parked + uncoveredShortfall)
         return width > 0 ? (width, membership) : nil
     }
 
