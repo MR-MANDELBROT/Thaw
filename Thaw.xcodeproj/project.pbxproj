@@ -348,7 +348,6 @@
 			packageProductDependencies = (
 				E2C0FFEE2F2C000000000003 /* MenuBarModel */,
 				A7C4F0042F60000000000004 /* ThawCapture */,
-				A1A1A1A1A1A1A1A1A1A1A109 /* ThawAXCore */,
 				B1B1B1B1B1B1B1B1B1B1B103 /* ThawLayout */,
 				D27A00042F40000000000004 /* PlatformRuntimeKit */,
 			);
@@ -1241,11 +1240,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E1E1E1E1E1E1E1E1E1E1E101 /* XCLocalSwiftPackageReference "ThawExtras" */;
 			productName = ThawExtraHelper;
-		};
-		A1A1A1A1A1A1A1A1A1A1A109 /* ThawAXCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A1A1A1A1A1A1A1A1A1A1A101 /* XCLocalSwiftPackageReference "ThawAX" */;
-			productName = ThawAXCore;
 		};
 		B1B1B1B1B1B1B1B1B1B1B102 /* ThawLayout */ = {
 			isa = XCSwiftPackageProductDependency;
