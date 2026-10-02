@@ -22,10 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Select latest installed Xcode (including betas)
+      # Xcode 27.0 (27A266a) is what upstream ships 3.0 builds with.
+      - name: Select Xcode 27.0
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
-          xcode-version: latest
+          xcode-version: '27.0'
 
       - name: Build
         run: |
@@ -66,10 +67,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Select latest installed Xcode (including betas)
+      # Xcode 27.0 (27A266a) is what upstream ships 3.0 builds with.
+      - name: Select Xcode 27.0
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
-          xcode-version: latest
+          xcode-version: '27.0'
 
       - name: Test
         run: |
