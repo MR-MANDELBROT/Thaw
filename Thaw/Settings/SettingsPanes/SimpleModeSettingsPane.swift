@@ -205,11 +205,13 @@ struct SimpleModeSettingsPane: View {
                 .font(ThawType.caption)
                 .foregroundStyle(ThawInk.supporting)
             Spacer()
-            Button("Check for Updates") {
-                updatesManager.checkForUpdates()
+            if Constants.supportsSparkleUpdates {
+                Button("Check for Updates") {
+                    updatesManager.checkForUpdates()
+                }
+                .buttonStyle(.settingsGlass)
+                .font(ThawType.label)
             }
-            .buttonStyle(.settingsGlass)
-            .font(ThawType.label)
         }
         .listRowBackground(Color.clear)
     }

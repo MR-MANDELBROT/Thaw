@@ -7,7 +7,7 @@
 	     accessibility APIs), so there is deliberately no app-sandbox key
 	     here: ENABLE_APP_SANDBOX stays NO for this target.
 
-	     The group id carries the team prefix (A7CKWF99ML.) rather than the
+	     The group id carries the team prefix (S3725YB7V6.) rather than the
 	     "group." form. On macOS that is the recommended spelling: a
 	     team-prefixed group container is created without the Sequoia-era
 	     user consent prompt that "group."-prefixed containers trigger, and
@@ -20,7 +20,7 @@
 	     Darwin notifications; see ControlCommandObserver. -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>A7CKWF99ML.com.stonerl.Thaw</string>
+		<string>S3725YB7V6.com.stonerl.Thaw</string>
 	</array>
 </dict>
 </plist>

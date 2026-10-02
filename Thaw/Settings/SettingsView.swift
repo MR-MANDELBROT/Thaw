@@ -417,8 +417,10 @@ private struct SettingsOverflowMenu: View {
             Button("What’s New…") {
                 appState.openWindow(.whatsNew)
             }
-            Button("Check for Updates…") {
-                appState.updatesManager.checkForUpdates()
+            if Constants.supportsSparkleUpdates {
+                Button("Check for Updates…") {
+                    appState.updatesManager.checkForUpdates()
+                }
             }
         } label: {
             Label("More", systemImage: "ellipsis.circle")

@@ -15,7 +15,7 @@ import WidgetKit
 ///
 /// An appex is sandboxed and Thaw is not, so the controls learn whether the
 /// hidden section is revealed or Zen Mode is on through the shared
-/// A7CKWF99ML.com.stonerl.Thaw application group: a small JSON snapshot of the
+/// S3725YB7V6.com.stonerl.Thaw application group: a small JSON snapshot of the
 /// two Bools in the group's UserDefaults suite.
 ///
 /// The channel is one-way. State flows app to appex through the suite, while
@@ -38,7 +38,7 @@ final class ControlStatePublisher {
     ///
     /// Team-prefixed rather than group.-prefixed: on macOS that form gets a
     /// group container without the Sequoia-era consent prompt.
-    static nonisolated let suiteName = "A7CKWF99ML.com.stonerl.Thaw"
+    static nonisolated let suiteName = "S3725YB7V6.com.stonerl.Thaw"
 
     /// The single defaults key the whole channel lives under.
     ///

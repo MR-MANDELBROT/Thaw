@@ -8,7 +8,7 @@
 // Two Control Center controls for Thaw's most-reached-for menu bar actions.
 //
 // Both read isOn from the snapshot Thaw publishes into the
-// A7CKWF99ML.com.stonerl.Thaw app group. See ControlCommandNames.swift for
+// S3725YB7V6.com.stonerl.Thaw app group. See ControlCommandNames.swift for
 // the channel and why its constants are duplicated across targets.
 
 import AppIntents

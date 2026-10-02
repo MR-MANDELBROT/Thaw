@@ -39,7 +39,7 @@ nonisolated struct ControlStateSnapshot: Codable, Sendable {
     }
 
     /// A team-prefixed macOS application group avoids the consent prompt required by group.-prefixed containers.
-    static nonisolated let suiteName = "A7CKWF99ML.com.stonerl.Thaw"
+    static nonisolated let suiteName = "S3725YB7V6.com.stonerl.Thaw"
 
     /// Store one JSON blob because UserDefaults has no cross-key transaction; separate Bool writes could expose impossible state.
     static nonisolated let stateKey = "com.stonerl.Thaw.control-state"
