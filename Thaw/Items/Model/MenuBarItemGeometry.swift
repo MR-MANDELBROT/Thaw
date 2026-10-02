@@ -22,6 +22,10 @@ nonisolated enum MenuBarItemGeometry {
     /// Transient AX sentinel X origin reported for items mid-conceal/reveal.
     static let transientSentinelX: CGFloat = -1
 
+    /// How far right of the sentinel a parked square icon reports its frame:
+    /// macOS parks 20 to 24 pt icons at x == 7 or 8 in the off-bar row.
+    static let parkedIconMaxInset: CGFloat = 12
+
     /// Two on-band frames whose minX differ by less than this share a seat.
     static let phantomFrameXTolerance: CGFloat = 0.5
 
@@ -48,6 +52,18 @@ nonisolated enum MenuBarItemGeometry {
         return screenFrames.first { screen in
             screen.contains(frame.origin) && frame.midY - screen.minY <= maxOnBarMidY
         }
+    }
+
+    /// Whether frame is where macOS parks an item it had no room to draw:
+    /// the x == -1 sentinel, or a square icon a few points right of it below
+    /// the bar. Reflow collateral keeps its hidden-side X and does not match.
+    static func isNoRoomPark(_ frame: CGRect) -> Bool {
+        if frame.minX == transientSentinelX {
+            return true
+        }
+        return frame.midY > maxOnBarMidY &&
+            frame.minX > transientSentinelX &&
+            frame.minX <= transientSentinelX + parkedIconMaxInset
     }
 }
 

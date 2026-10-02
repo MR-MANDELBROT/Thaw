@@ -265,16 +265,17 @@ extension MenuBarItemManager {
                 controller.section(for: $0) == .visible &&
                 liveParkedIDs.contains($0.windowID)
         }
-        // x == -1 means macOS had no room to draw the item, which a move
-        // cannot fix. The overflow budget conceals from the left until they fit.
-        let droppedOffBar = parkedVisible.filter { $0.bounds.minX == MenuBarItemGeometry.transientSentinelX }
+        // A park at the leading edge (x == -1, or x == 7/8 for a square icon)
+        // means macOS had no room to draw the item, which a move cannot fix.
+        // The overflow budget conceals from the left until they fit.
+        let droppedOffBar = parkedVisible.filter { MenuBarItemGeometry.isNoRoomPark($0.bounds) }
         if !droppedOffBar.isEmpty {
             MenuBarItemManager.diagLog.info(
                 "post-restriction repair: \(droppedOffBar.count) visible item(s) have no room on the bar; " +
                     "leaving them to the overflow budget: " + droppedOffBar.map(\.logString).joined(separator: ", ")
             )
         }
-        let unparkable = parkedVisible.filter { $0.bounds.minX != MenuBarItemGeometry.transientSentinelX }
+        let unparkable = parkedVisible.filter { !MenuBarItemGeometry.isNoRoomPark($0.bounds) }
         if !unparkable.isEmpty, let anchor = unparkAnchorAmong(liveItems: liveItems, controller: controller) {
             MenuBarItemManager.diagLog.info(
                 "post-restriction repair: unparking \(unparkable.count) off-band item(s) " +
